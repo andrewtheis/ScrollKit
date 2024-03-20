@@ -87,7 +87,7 @@ public struct ScrollViewWithStickyHeader<Header: View, Content: View>: View {
         max(headerHeight - islandHeight, 0)
     }
     private var headerVisibleRatio: CGFloat {
-        (headerHeight + scrollOffset.y) / headerHeight
+        (adjustedHeaderHeight + scrollOffset.y) / adjustedHeaderHeight
     }
     
     /// Either the min value the developer sets or the nav bar height
@@ -117,7 +117,7 @@ private extension ScrollViewWithStickyHeader {
         guard let headerMinHeight else {
             return headerVisibleRatio <= 0
         }
-        return scrollOffset.y < -(headerHeight - islandHeight - (headerMinHeight - inlineNavBarHeight))
+        return scrollOffset.y < -(adjustedHeaderHeight - (headerMinHeight - inlineNavBarHeight))
     }
     
     @ViewBuilder
@@ -136,7 +136,7 @@ private extension ScrollViewWithStickyHeader {
             ScrollViewWithOffsetTracking(onScroll: handleScrollOffset) {
                 VStack(spacing: 0) {
                     ScrollViewHeader(content: header)
-                        .frame(height: headerHeight - islandHeight)
+                        .frame(height: adjustedHeaderHeight)
                     content()
                         .frame(maxHeight: .infinity)
                 }
