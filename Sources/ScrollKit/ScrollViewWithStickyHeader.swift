@@ -74,25 +74,31 @@ public struct ScrollViewWithStickyHeader<Header: View, Content: View>: View {
     public typealias ScrollAction = (_ offset: CGPoint, _ headerVisibleRatio: CGFloat) -> Void
 
     @State
-    private var navigationBarHeight: CGFloat = 0
+    private var topSafeAreaInset: CGFloat = 0
 
     @State
     private var scrollOffset: CGPoint = .zero
     
+    /// Nav bar height
     private let inlineNavBarHeight: CGFloat = 44
     
+    /// Header height should be relative to the safe area, not including the nav bar height.
+    private var adjustedHeaderHeight: CGFloat {
+        max(headerHeight - islandHeight, 0)
+    }
     private var headerVisibleRatio: CGFloat {
         (headerHeight + scrollOffset.y) / headerHeight
     }
     
+    /// Either the min value the developer sets or the nav bar height
     private var minHeaderHeight: CGFloat {
-        headerMinHeight ?? (navigationBarHeight - islandHeight)
+        headerMinHeight ?? inlineNavBarHeight
     }
     
     private var islandHeight: CGFloat {
-        navigationBarHeight - inlineNavBarHeight
+        topSafeAreaInset - inlineNavBarHeight
     }
-
+    
     public var body: some View {
         ZStack(alignment: .top) {
             scrollView
@@ -111,7 +117,7 @@ private extension ScrollViewWithStickyHeader {
         guard let headerMinHeight else {
             return headerVisibleRatio <= 0
         }
-        return scrollOffset.y < -(headerHeight - (headerMinHeight - inlineNavBarHeight))
+        return scrollOffset.y < -(headerHeight - islandHeight - (headerMinHeight - inlineNavBarHeight))
     }
     
     @ViewBuilder
@@ -130,14 +136,14 @@ private extension ScrollViewWithStickyHeader {
             ScrollViewWithOffsetTracking(onScroll: handleScrollOffset) {
                 VStack(spacing: 0) {
                     ScrollViewHeader(content: header)
-                        .frame(height: headerHeight)
+                        .frame(height: headerHeight - islandHeight)
                     content()
                         .frame(maxHeight: .infinity)
                 }
             }
             .onAppear {
                 DispatchQueue.main.async {
-                    navigationBarHeight = proxy.safeAreaInsets.top
+                    topSafeAreaInset = proxy.safeAreaInsets.top
                 }
             }
         }
