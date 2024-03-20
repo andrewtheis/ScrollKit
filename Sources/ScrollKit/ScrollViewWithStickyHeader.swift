@@ -78,9 +78,19 @@ public struct ScrollViewWithStickyHeader<Header: View, Content: View>: View {
 
     @State
     private var scrollOffset: CGPoint = .zero
-
+    
+    private let inlineNavBarHeight: CGFloat = 44
+    
     private var headerVisibleRatio: CGFloat {
         (headerHeight + scrollOffset.y) / headerHeight
+    }
+    
+    private var minHeaderHeight: CGFloat {
+        headerMinHeight ?? (navigationBarHeight - islandHeight)
+    }
+    
+    private var islandHeight: CGFloat {
+        navigationBarHeight - inlineNavBarHeight
     }
 
     public var body: some View {
@@ -98,26 +108,29 @@ public struct ScrollViewWithStickyHeader<Header: View, Content: View>: View {
 private extension ScrollViewWithStickyHeader {
     
     var isStickyHeaderVisible: Bool {
-        guard let headerMinHeight else { return headerVisibleRatio <= 0 }
-        return scrollOffset.y < -headerMinHeight
+        guard let headerMinHeight else {
+            return headerVisibleRatio <= 0
+        }
+        return scrollOffset.y < -(headerHeight - (headerMinHeight - inlineNavBarHeight))
     }
-
+    
     @ViewBuilder
     var navbarOverlay: some View {
         if isStickyHeaderVisible {
-            Color.clear
-                .frame(height: navigationBarHeight)
-                .overlay(scrollHeader, alignment: .bottom)
-                .ignoresSafeArea(edges: .top)
-                .frame(height: headerMinHeight)
+            ZStack(alignment: .bottom) {
+                header()
+                    .frame(height: minHeaderHeight + islandHeight)
+            }
+            .ignoresSafeArea(edges: .top)
         }
     }
-
+    
     var scrollView: some View {
         GeometryReader { proxy in
             ScrollViewWithOffsetTracking(onScroll: handleScrollOffset) {
                 VStack(spacing: 0) {
-                    scrollHeader
+                    ScrollViewHeader(content: header)
+                        .frame(height: headerHeight)
                     content()
                         .frame(maxHeight: .infinity)
                 }
@@ -129,12 +142,7 @@ private extension ScrollViewWithStickyHeader {
             }
         }
     }
-
-    var scrollHeader: some View {
-        ScrollViewHeader(content: header)
-            .frame(height: headerHeight)
-    }
-
+    
     func handleScrollOffset(_ offset: CGPoint) {
         self.scrollOffset = offset
         self.onScroll?(offset, headerVisibleRatio)
